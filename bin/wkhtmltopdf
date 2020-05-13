@@ -9,12 +9,13 @@
 
 require 'rbconfig'
 require 'zlib'
+require 'securerandom'
 
 suffix = case RbConfig::CONFIG['host_os']
          when /linux/
            os = `. /etc/os-release 2> /dev/null && echo ${ID}_${VERSION_ID}`.strip
 
-           if os.start_with?('elementary') || os.start_with?('linuxmint') || os.start_with?('pop')
+           if os.start_with?('elementary') || os.start_with?('linuxmint') || os.start_with?('pop') || os.eql?('ubuntu_20.04')
              os = 'ubuntu_18.04'
            end
 
@@ -50,4 +51,24 @@ unless File.exist? binary
         "(missing binary: #{binary})."
 end
 
-exec *$*.unshift(binary)
+raise 'chromium-browser binary not found.' unless system('which chromium-browser')
+
+uuid = SecureRandom.uuid
+# ENV['PWD'] is path to kings-landing
+temp_path = "#{ENV['PWD']}/tmp"
+
+html_path = "#{temp_path}/html_#{uuid}.html"
+File.open(html_path, 'wb') do |f|
+  f.write "\uFEFF"
+  f.write STDIN.read
+end
+
+output_path = "#{temp_path}/output_#{uuid}.html"
+system "chromium-browser --headless --disable-gpu --dump-dom #{html_path} > #{output_path} && pkill -HUP chromium"
+
+cmd = $*.unshift(binary)
+cmd[-2] = output_path
+system *cmd
+
+# clean up temporary files
+system "rm -f #{temp_path}/html_#{uuid}.html #{temp_path}/output_#{uuid}.html"
