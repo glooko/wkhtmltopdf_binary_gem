@@ -55,7 +55,9 @@ raise 'chromium-browser binary not found.' unless system('which chromium-browser
 
 uuid = SecureRandom.uuid
 # ENV['PWD'] is path to kings-landing
-temp_path = "#{ENV['PWD']}/tmp"
+temp_path = "#{ENV['PWD']}/tmp/pdf"
+# create ENV['PWD']/tmp/pdf if it doesn't exist
+system "[ ! -d #{temp_path} ] && mkdir #{temp_path}"
 
 html_path = "#{temp_path}/html_#{uuid}.html"
 File.open(html_path, 'wb') do |f|
@@ -64,11 +66,15 @@ File.open(html_path, 'wb') do |f|
 end
 
 output_path = "#{temp_path}/output_#{uuid}.html"
-system "chromium-browser --headless --disable-gpu --dump-dom #{html_path} > #{output_path} && pkill -HUP chromium"
+success = system "chromium-browser --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
+raise "chromium-browser failed to generate html with '#{uuid}' uuid." unless success
 
 cmd = $*.unshift(binary)
 cmd[-2] = output_path
-system *cmd
+success = system *cmd
+raise "wkhtmltopdf binary failed to generate pdf from #{output_path}." unless success
 
+# kill hanging chromium snap process
+system "kill -9 $(pgrep -f html_#{uuid}.html | awk '{print $1}')"
 # clean up temporary files
 system "rm -f #{temp_path}/html_#{uuid}.html #{temp_path}/output_#{uuid}.html"
