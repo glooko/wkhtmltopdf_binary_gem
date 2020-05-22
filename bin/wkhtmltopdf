@@ -75,8 +75,6 @@ cmd[-2] = output_path
 success = system *cmd
 raise "wkhtmltopdf binary failed to generate pdf from #{output_path}." unless success
 
-# kill hanging chromium snap process
-system "kill -9 $(pgrep -f html_#{uuid}.html | awk '{print $1}')"
 # clean up temporary files
 File.delete html_path if File.exist? html_path
 File.delete output_path if File.exist? output_path
