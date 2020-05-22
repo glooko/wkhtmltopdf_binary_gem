@@ -9,12 +9,14 @@
 
 require 'rbconfig'
 require 'zlib'
+require 'securerandom'
+require 'fileutils'
 
 suffix = case RbConfig::CONFIG['host_os']
          when /linux/
            os = `. /etc/os-release 2> /dev/null && echo ${ID}_${VERSION_ID}`.strip
 
-           if os.start_with?('elementary') || os.start_with?('linuxmint') || os.start_with?('pop')
+           if os.start_with?('elementary') || os.start_with?('linuxmint') || os.start_with?('pop') || os.eql?('ubuntu_20.04')
              os = 'ubuntu_18.04'
            end
 
@@ -50,4 +52,31 @@ unless File.exist? binary
         "(missing binary: #{binary})."
 end
 
-exec *$*.unshift(binary)
+raise 'chromium-browser binary not found.' unless system('which chromium-browser')
+
+uuid = SecureRandom.uuid
+# ENV['PWD'] is path to kings-landing
+temp_path = "#{ENV['PWD']}/tmp/pdf"
+# create ENV['PWD']/tmp/pdf if it doesn't exist
+FileUtils.mkdir_p temp_path
+
+html_path = "#{temp_path}/html_#{uuid}.html"
+File.open(html_path, 'wb') do |f|
+  f.write "\uFEFF"
+  f.write STDIN.read
+end
+
+output_path = "#{temp_path}/output_#{uuid}.html"
+success = system "chromium-browser --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
+raise "chromium-browser failed to generate html with '#{uuid}' uuid." unless success
+
+cmd = $*.unshift(binary)
+cmd[-2] = output_path
+success = system *cmd
+raise "wkhtmltopdf binary failed to generate pdf from #{output_path}." unless success
+
+# kill hanging chromium snap process
+system "kill -9 $(pgrep -f html_#{uuid}.html | awk '{print $1}')"
+# clean up temporary files
+File.delete html_path if File.exist? html_path
+File.delete output_path if File.exist? output_path
