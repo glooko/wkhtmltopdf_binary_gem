@@ -10,6 +10,7 @@
 require 'rbconfig'
 require 'zlib'
 require 'securerandom'
+require 'fileutils'
 
 suffix = case RbConfig::CONFIG['host_os']
          when /linux/
@@ -57,7 +58,7 @@ uuid = SecureRandom.uuid
 # ENV['PWD'] is path to kings-landing
 temp_path = "#{ENV['PWD']}/tmp/pdf"
 # create ENV['PWD']/tmp/pdf if it doesn't exist
-system "[ ! -d #{temp_path} ] && mkdir #{temp_path}"
+FileUtils.mkdir_p temp_path
 
 html_path = "#{temp_path}/html_#{uuid}.html"
 File.open(html_path, 'wb') do |f|
@@ -77,4 +78,5 @@ raise "wkhtmltopdf binary failed to generate pdf from #{output_path}." unless su
 # kill hanging chromium snap process
 system "kill -9 $(pgrep -f html_#{uuid}.html | awk '{print $1}')"
 # clean up temporary files
-system "rm -f #{temp_path}/html_#{uuid}.html #{temp_path}/output_#{uuid}.html"
+File.delete html_path if File.exist? html_path
+File.delete output_path if File.exist? output_path
