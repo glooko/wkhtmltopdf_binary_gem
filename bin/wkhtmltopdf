@@ -52,7 +52,7 @@ unless File.exist? binary
         "(missing binary: #{binary})."
 end
 
-raise 'chromium-browser binary not found.' unless system('which chromium-browser')
+raise 'chromium binary not found.' unless system('which chromium')
 
 uuid = SecureRandom.uuid
 # ENV['PWD'] is path to kings-landing
@@ -67,8 +67,8 @@ File.open(html_path, 'wb') do |f|
 end
 
 output_path = "#{temp_path}/output_#{uuid}.html"
-success = system "chromium-browser --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
-raise "chromium-browser failed to generate html with '#{uuid}' uuid." unless success
+success = system "chromium --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
+raise "chromium failed to generate html with '#{uuid}' uuid." unless success
 
 cmd = $*.unshift(binary)
 cmd[-2] = output_path
