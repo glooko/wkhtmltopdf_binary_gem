@@ -10,6 +10,21 @@
 require 'rbconfig'
 require 'securerandom'
 require 'fileutils'
+require 'logger'
+
+def log_duration(type = :info, log_name)
+  log = Logger.new(STDERR)
+  log.public_send(type, "#{log_name} start: "\
+                                   "#{start_time = Time.now}")
+
+  yield
+ensure
+  log.public_send(type, "#{log_name} end: "\
+                                   "#{end_time = Time.now}")
+  log.public_send(type, "#{log_name} "\
+                                   "total time: #{end_time - start_time} s")
+end
+
 
 suffix =
   case RbConfig::CONFIG['host_os']
@@ -38,13 +53,20 @@ File.open(html_path, 'wb') do |f|
 end
 
 output_path = "#{temp_path}/output_#{uuid}.html"
-success = system "chromium --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
+
+success = log_duration('info', "PDF: chromium execution") do
+  system "chromium --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
+end
+
 raise "chromium failed to generate html with '#{uuid}' uuid." unless success
 
 cmd = $*.unshift(binary)
 cmd[-2] = output_path
 
-system *cmd
+log_duration('info', "PDF: wkhtmltopdf execution") do
+  system *cmd
+end
+
 raise "wkhtmltopdf binary failed to generate pdf from #{output_path}." unless success
 
 # clean up temporary files
