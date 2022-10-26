@@ -29,7 +29,14 @@ end
 suffix =
   case RbConfig::CONFIG['host_os']
   when /linux/
-    RbConfig::CONFIG['host_cpu'] == 'x86_64' ? 'linux_amd64' : 'linux_x86'
+    case RbConfig::CONFIG['host_cpu'] 
+    when 'x86_64'
+      'linux_amd64'
+    when 'aarch64'
+      'debian_11_arm64'
+    else
+      'linux_x86'
+    end
   when /darwin/
     'darwin_x86'
   else
