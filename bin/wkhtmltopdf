@@ -32,7 +32,7 @@ suffix =
     when 'x86_64'
       'debian_11_amd64'
     when 'aarch64'
-      'debian_11_arm64_2'
+      'debian_11_arm64'
     else
       'debian_11_i386'
     end
