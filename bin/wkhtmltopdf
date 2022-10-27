@@ -25,6 +25,7 @@ ensure
                                    "total time: #{end_time - start_time} s")
 end
 
+# log2 = Logger.new(STDERR)
 
 suffix =
   case RbConfig::CONFIG['host_os']
@@ -42,6 +43,9 @@ suffix =
   else
     raise 'Invalid platform. Must be running on linux or intel-based Mac OS.'
   end
+
+# log2.info({suffix: suffix, host_cpu: RbConfig::CONFIG['host_cpu'], host_os: RbConfig::CONFIG['host_os']})
+# puts suffix
 
 binary = "#{__FILE__}_#{suffix}"
 
@@ -67,10 +71,13 @@ end
 
 raise "chromium failed to generate html with '#{uuid}' uuid." unless success
 
+log2.info({suffix: suffix, host_cpu: RbConfig::CONFIG['host_cpu'], host_os: RbConfig::CONFIG['host_os'], binary: binary, cmd: cmd})
 cmd = $*.unshift(binary)
 cmd[-2] = output_path
 
-log_duration('info', "PDF: wkhtmltopdf execution") do
+log2.info({suffix: suffix, host_cpu: RbConfig::CONFIG['host_cpu'], host_os: RbConfig::CONFIG['host_os'], binary: binary, cmd: cmd})
+success = log_duration('info', "PDF: wkhtmltopdf execution") do
+  log2.info(*cmd)
   system *cmd
 end
 
