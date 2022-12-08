@@ -53,13 +53,13 @@ temp_path = "#{ENV['PWD']}/pdf"
 # create ENV['PWD']/tmp/pdf if it doesn't exist
 FileUtils.mkdir_p temp_path
 
-html_path = "#{temp_path}/html_#{time}.html"
+html_path = "#{temp_path}/#{time}_html.html"
 File.open(html_path, 'wb') do |f|
   f.write "\uFEFF"
   f.write STDIN.read
 end
 
-output_path = "#{temp_path}/output_#{time}.html"
+output_path = "#{temp_path}/#{time}_output.html"
 
 success = log_duration('info', "PDF: chromium execution") do
   system "chromium --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
