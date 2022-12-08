@@ -46,25 +46,26 @@ binary = "#{__FILE__}_#{suffix}"
 
 raise 'chromium binary not found.' unless system('which chromium')
 
-uuid = SecureRandom.uuid
+time = Time.now.in_time_zone("Europe/Zagreb").strftime("%Y_%m_%d_%H_%M_%S")
+
 # ENV['PWD'] is path to kings-landing
-temp_path = "#{ENV['PWD']}/tmp/pdf"
+temp_path = "#{ENV['PWD']}/pdf"
 # create ENV['PWD']/tmp/pdf if it doesn't exist
 FileUtils.mkdir_p temp_path
 
-html_path = "#{temp_path}/html_#{uuid}.html"
+html_path = "#{temp_path}/html_#{time}.html"
 File.open(html_path, 'wb') do |f|
   f.write "\uFEFF"
   f.write STDIN.read
 end
 
-output_path = "#{temp_path}/output_#{uuid}.html"
+output_path = "#{temp_path}/output_#{time}.html"
 
 success = log_duration('info', "PDF: chromium execution") do
   system "chromium --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
 end
 
-raise "chromium failed to generate html with '#{uuid}' uuid." unless success
+raise "chromium failed to generate html with '#{time}' time." unless success
 
 cmd = $*.unshift(binary)
 cmd = cmd.insert(-3, "--enable-local-file-access")
@@ -77,5 +78,5 @@ end
 raise "wkhtmltopdf binary failed to generate pdf from #{output_path}." unless success
 
 # clean up temporary files
-File.delete html_path if File.exist? html_path
-File.delete output_path if File.exist? output_path
+# File.delete html_path if File.exist? html_path
+# File.delete output_path if File.exist? output_path
