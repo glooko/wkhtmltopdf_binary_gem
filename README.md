@@ -59,3 +59,8 @@ There also is a rudimentary minitest test that simply invokes `docker-compose ru
 expects to see the output of `wkhtmltopdf --version`. Just run `rake` to run it. 
 
 You can clean up after testing with `docker-compose down --rmi all`.
+
+## Pushing new version to Github Packages
+
+1. Load your personal access token in environment as `GITHUB_GLOOKO_BUNDLE_PASSWORD`
+2. Run `docker compose run gem_publish`
