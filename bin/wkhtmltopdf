@@ -46,7 +46,7 @@ binary = "#{__FILE__}_#{suffix}"
 
 raise 'chromium binary not found.' unless system('which chromium')
 
-time = Time.now.strftime("%Y_%m_%d_%H_%M_%S")
+time = "#{Time.now.strftime("%Y_%m_%d_%H_%M_%S")}_#{SecureRandom.uuid}"
 
 # ENV['PWD'] is path to kings-landing
 temp_path = "#{ENV['PWD']}/pdf"
