@@ -60,26 +60,31 @@ File.open(html_path, 'wb') do |f|
   f.write STDIN.read
 end
 
-output_path = "#{temp_path}/output_#{uuid}.html"
+output_path = "#{temp_path}/output_#{uuid}.pdf"
 
 success = log_duration('info', "PDF: chromium execution") do
-  system "chromium --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
+  system "chromium --headless --disable-gpu --run-all-compositor-stages-before-draw --print-to-pdf=#{output_path} #{html_path}"
+  # system "chromium --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
 end
 
 raise "chromium failed to generate html with '#{uuid}' uuid." unless success
 
-cmd = $*.unshift(binary)
-cmd = cmd.insert(-3, "--enable-local-file-access")
-cmd[-2] = output_path
-
-log.public_send('info', "wkhtmltopdf params")
-log.public_send('info', cmd.join(" "))
-
-success = log_duration('info', "PDF: wkhtmltopdf execution") do
-  system *cmd
+File.open(output_path, 'rb') do |f|
+  STDOUT.write f.read 
 end
 
-raise "wkhtmltopdf binary failed to generate pdf from #{output_path}." unless success
+# cmd = $*.unshift(binary)
+# cmd = cmd.insert(-3, "--enable-local-file-access")
+# cmd[-2] = output_path
+
+# log.public_send('info', "wkhtmltopdf params")
+# log.public_send('info', cmd.join(" "))
+
+# success = log_duration('info', "PDF: wkhtmltopdf execution") do
+#  system *cmd
+# end
+
+# raise "wkhtmltopdf binary failed to generate pdf from #{output_path}." unless success
 
 # clean up temporary files
 File.delete html_path if File.exist? html_path
