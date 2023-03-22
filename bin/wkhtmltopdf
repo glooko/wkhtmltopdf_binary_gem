@@ -73,7 +73,7 @@ cmd = cmd.insert(-3, "--enable-local-file-access")
 cmd[-2] = output_path
 
 log.public_send('info', "wkhtmltopdf params")
-log.public_send('info', cmd)
+log.public_send('info', cmd.join(" "))
 
 success = log_duration('info', "PDF: wkhtmltopdf execution") do
   system *cmd
