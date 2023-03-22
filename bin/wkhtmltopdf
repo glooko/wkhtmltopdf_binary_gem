@@ -25,6 +25,8 @@ ensure
                                    "total time: #{end_time - start_time} s")
 end
 
+log = Logger.new(STDERR)
+
 suffix =
   case RbConfig::CONFIG['host_os']
   when /linux/
@@ -69,6 +71,9 @@ raise "chromium failed to generate html with '#{uuid}' uuid." unless success
 cmd = $*.unshift(binary)
 cmd = cmd.insert(-3, "--enable-local-file-access")
 cmd[-2] = output_path
+
+log.public_send('info', "wkhtmltopdf params")
+log.public_send('info', cmd)
 
 success = log_duration('info', "PDF: wkhtmltopdf execution") do
   system *cmd
