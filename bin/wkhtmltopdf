@@ -25,11 +25,17 @@ ensure
                                    "total time: #{end_time - start_time} s")
 end
 
-
 suffix =
   case RbConfig::CONFIG['host_os']
   when /linux/
-    RbConfig::CONFIG['host_cpu'] == 'x86_64' ? 'linux_amd64' : 'linux_x86'
+    case RbConfig::CONFIG['host_cpu'] 
+    when 'x86_64'
+      'debian_11_amd64'
+    when 'aarch64'
+      'debian_11_arm64'
+    else
+      'debian_11_i386'
+    end
   when /darwin/
     'darwin_x86'
   else
@@ -61,9 +67,10 @@ end
 raise "chromium failed to generate html with '#{uuid}' uuid." unless success
 
 cmd = $*.unshift(binary)
+cmd = cmd.insert(-3, "--enable-local-file-access")
 cmd[-2] = output_path
 
-log_duration('info', "PDF: wkhtmltopdf execution") do
+success = log_duration('info', "PDF: wkhtmltopdf execution") do
   system *cmd
 end
 
