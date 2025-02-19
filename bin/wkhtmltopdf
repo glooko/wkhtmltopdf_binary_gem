@@ -8,27 +8,25 @@
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 require 'rbconfig'
-require 'securerandom'
 require 'fileutils'
 require 'logger'
+require 'digest'
 
-def log_duration(type = :info, log_name)
-  log = Logger.new(STDERR)
-  log.public_send(type, "#{log_name} start: "\
-                                   "#{start_time = Time.now}")
+LOGGER = Logger.new $stderr
+
+def log_duration(log_name)
+  LOGGER.info "#{log_name} start: #{start_time = Time.now.utc}"
 
   yield
 ensure
-  log.public_send(type, "#{log_name} end: "\
-                                   "#{end_time = Time.now}")
-  log.public_send(type, "#{log_name} "\
-                                   "total time: #{end_time - start_time} s")
+  LOGGER.info "#{log_name} end: #{end_time = Time.now.utc}"
+  LOGGER.info "#{log_name} total time: #{end_time - start_time} s"
 end
 
 suffix =
   case RbConfig::CONFIG['host_os']
   when /linux/
-    case RbConfig::CONFIG['host_cpu'] 
+    case RbConfig::CONFIG['host_cpu']
     when 'x86_64'
       'debian_11_amd64'
     when 'aarch64'
@@ -46,36 +44,46 @@ binary = "#{__FILE__}_#{suffix}"
 
 raise 'chromium binary not found.' unless system('which chromium')
 
-uuid = SecureRandom.uuid
-# ENV['PWD'] is path to kings-landing
-temp_path = "#{ENV['PWD']}/tmp/pdf"
-# create ENV['PWD']/tmp/pdf if it doesn't exist
-FileUtils.mkdir_p temp_path
+# ENV['PWD'] is path to kings-landing application root
+# File location needs to match the one generated in Pdf::TemporaryHtmlFile
+temp_path = "#{ENV.fetch('PWD')}/tmp/pdf"
 
+# URL to the HTML file will always be second to last argument
+html_url = ARGV[-2]
+
+# we expect to receive URL in format of http://hostname/api/v3/pdf/raw_html/5debbdb1-c5a8-4620-8c88-03b30c2aa197
+uuid = html_url.split('/').last
+# File names need to match the ones generated in Pdf::TemporaryHtmlFile
 html_path = "#{temp_path}/html_#{uuid}.html"
-File.open(html_path, 'wb') do |f|
-  f.write "\uFEFF"
-  f.write STDIN.read
-end
-
 output_path = "#{temp_path}/output_#{uuid}.html"
 
-success = log_duration('info', "PDF: chromium execution") do
-  system "chromium --headless --disable-gpu --dump-dom #{html_path} > #{output_path}"
+# append digest to the original URL
+html_url += "?digest=#{Digest::SHA256.file(html_path).hexdigest}"
+chromium_command =
+  'chromium --headless --disable-gpu --dump-dom ' \
+  "#{Shellwords.escape(html_url)} > #{Shellwords.escape(output_path)}"
+
+LOGGER.info "Executing command: #{chromium_command}"
+success = log_duration('PDF: chromium execution') do
+  system chromium_command
+end
+raise "chromium failed to generate HTML with '#{uuid}' UUID." unless success
+
+# append parameters to the original URL. output=true tells Rails to return
+# file with output_prefix (preprocessed by Chromium). Digest confirms that we
+# have access to the file
+ARGV[-2] += "?output=true&digest=#{Digest::SHA256.file(output_path).hexdigest}"
+
+cmd = ARGV.unshift(binary)
+cmd.insert(-3, '--enable-local-file-access')
+
+LOGGER.info "Executing command: #{cmd}"
+success = log_duration('PDF: wkhtmltopdf execution') do
+  system(*cmd)
 end
 
-raise "chromium failed to generate html with '#{uuid}' uuid." unless success
-
-cmd = $*.unshift(binary)
-cmd = cmd.insert(-3, "--enable-local-file-access")
-cmd[-2] = output_path
-
-success = log_duration('info', "PDF: wkhtmltopdf execution") do
-  system *cmd
-end
-
-raise "wkhtmltopdf binary failed to generate pdf from #{output_path}." unless success
+raise "wkhtmltopdf failed to generate HTML with '#{uuid}' UUID." unless success
 
 # clean up temporary files
-File.delete html_path if File.exist? html_path
-File.delete output_path if File.exist? output_path
+FileUtils.rm_f html_path
+FileUtils.rm_f output_path
