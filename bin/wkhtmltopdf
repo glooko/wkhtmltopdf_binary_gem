@@ -11,6 +11,7 @@ require 'rbconfig'
 require 'fileutils'
 require 'logger'
 require 'digest'
+require 'shellwords'
 
 LOGGER = Logger.new $stderr
 
