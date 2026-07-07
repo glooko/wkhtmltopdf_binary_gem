@@ -89,7 +89,7 @@ begin
 
   pdf_succeeded = true
 ensure
-  keep_on_failure = ENV.fetch('WKHTMLTOPDF_KEEP_TMP_FILES_ON_FAILURE', 'true').casecmp('true').zero?
+  keep_on_failure = ENV.fetch('WKHTMLTOPDF_KEEP_TMP_FILES_ON_FAILURE', 'false').casecmp('true').zero?
   if pdf_succeeded || !keep_on_failure
     FileUtils.rm_f html_path
     FileUtils.rm_f output_path
